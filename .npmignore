@@ -1,0 +1,8 @@
+tests/
+docs/
+.env
+.git/
+node_modules/
+dist/
+*.test.ts
+*.tsbuildinfo

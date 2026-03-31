@@ -1,0 +1,48 @@
+{
+  "name": "clipboard-cli",
+  "version": "1.0.0",
+  "description": "Universal clipboard formatter — copy content formatted for Teams, Loop, Outlook, ADO, and more",
+  "type": "module",
+  "bin": {
+    "clipboard": "./bin/clipboard"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": ["clipboard", "formatter", "teams", "loop", "outlook", "ado", "cf_html", "agent", "cli"],
+  "author": {
+    "name": "Kaleb Cole",
+    "url": "https://github.com/KalebCole"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KalebCole/clipboard-cli"
+  },
+  "bugs": {
+    "url": "https://github.com/KalebCole/clipboard-cli/issues"
+  },
+  "homepage": "https://github.com/KalebCole/clipboard-cli#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "dist/",
+    "scripts/",
+    "skills/",
+    ".env.example"
+  ],
+  "dependencies": {
+    "commander": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "license": "MIT"
+}
