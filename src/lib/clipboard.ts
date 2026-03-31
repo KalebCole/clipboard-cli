@@ -31,17 +31,30 @@ export function copyPlainText(text: string): void {
   }
 }
 
+/**
+ * Encode all non-ASCII characters as HTML numeric entities.
+ * This makes the CF_HTML payload pure ASCII, avoiding all encoding issues
+ * in the Node→PowerShell→clipboard pipeline.
+ * Teams/Outlook/Loop all understand &#xNNNN; entities.
+ */
+function htmlEncodeNonAscii(html: string): string {
+  return html.replace(/[^\x00-\x7F]/g, (char) => {
+    const cp = char.codePointAt(0);
+    return cp !== undefined ? `&#x${cp.toString(16)};` : '';
+  });
+}
+
 /** Copy HTML as CF_HTML (rich text) to clipboard with plain text fallback. */
 export function copyCfHtml(html: string, plainText: string): void {
   try {
-    // Pass both HTML and plainText via stdin using a delimiter to avoid command injection.
-    // The PS1 script reads HTML from stdin; we pass plainText as a Base64-encoded param
-    // to avoid any shell metacharacter issues.
+    // Encode non-ASCII as HTML entities so CF_HTML is pure ASCII —
+    // avoids UTF-8 encoding issues in the Node→PowerShell stdin pipe.
+    const safeHtml = htmlEncodeNonAscii(html);
     const b64PlainText = Buffer.from(plainText, 'utf-8').toString('base64');
     execSync(
       `powershell -NoProfile -File "${SCRIPT_PATH}" -PlainTextBase64 "${b64PlainText}"`,
       {
-        input: html,
+        input: safeHtml,
         encoding: 'utf-8',
         timeout: 10000,
         stdio: ['pipe', 'pipe', 'pipe'],
