@@ -57,9 +57,16 @@ $header += "EndFragment:$(& $pad $endFragmentOffset)`r`n"
 
 $clipData = $header + $fullHtml
 
-# Set clipboard with both HTML Format and plain text
+# Set clipboard with both HTML Format (as UTF-8 bytes) and plain text
+# CF_HTML MUST be set as a UTF-8 byte stream, NOT a .NET string.
+# Passing a string causes Windows to interpret it as the system codepage (Windows-1252),
+# which garbles multi-byte UTF-8 characters (emoji, em dashes, etc.).
 $dataObj = New-Object System.Windows.Forms.DataObject
-$dataObj.SetData("HTML Format", $clipData)
+
+$utf8Bytes = $enc.GetBytes($clipData)
+$stream = New-Object System.IO.MemoryStream(,$utf8Bytes)
+$dataObj.SetData("HTML Format", $stream)
+
 $dataObj.SetData([System.Windows.Forms.DataFormats]::UnicodeText, $PlainText)
 [System.Windows.Forms.Clipboard]::SetDataObject($dataObj, $true)
 
