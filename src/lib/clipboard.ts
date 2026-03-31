@@ -1,12 +1,14 @@
 /**
  * Clipboard write operations.
  * Plain text via PowerShell Set-Clipboard, CF_HTML via set-clipboard.ps1 bridge.
+ * All data sent to PowerShell as Base64 to avoid stdin encoding issues.
  */
 
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { ClipboardError } from './errors.js';
+import { buildCfHtml } from './cfhtml.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.resolve(__dirname, '..', '..', 'scripts', 'set-clipboard.ps1');
@@ -31,30 +33,19 @@ export function copyPlainText(text: string): void {
   }
 }
 
-/**
- * Encode all non-ASCII characters as HTML numeric entities.
- * This makes the CF_HTML payload pure ASCII, avoiding all encoding issues
- * in the Node→PowerShell→clipboard pipeline.
- * Teams/Outlook/Loop all understand &#xNNNN; entities.
- */
-function htmlEncodeNonAscii(html: string): string {
-  return html.replace(/[^\x00-\x7F]/g, (char) => {
-    const cp = char.codePointAt(0);
-    return cp !== undefined ? `&#x${cp.toString(16)};` : '';
-  });
-}
-
 /** Copy HTML as CF_HTML (rich text) to clipboard with plain text fallback. */
 export function copyCfHtml(html: string, plainText: string): void {
   try {
-    // Encode non-ASCII as HTML entities so CF_HTML is pure ASCII —
-    // avoids UTF-8 encoding issues in the Node→PowerShell stdin pipe.
-    const safeHtml = htmlEncodeNonAscii(html);
-    const b64PlainText = Buffer.from(plainText, 'utf-8').toString('base64');
+    // Build the full CF_HTML envelope in Node.js where encoding is reliable,
+    // then Base64-encode the raw UTF-8 bytes. PowerShell decodes and sets
+    // the clipboard with the exact bytes — no stdin encoding issues.
+    const cfHtml = buildCfHtml(html);
+    const cfHtmlB64 = Buffer.from(cfHtml, 'utf-8').toString('base64');
+    const plainTextB64 = Buffer.from(plainText, 'utf-8').toString('base64');
+
     execSync(
-      `powershell -NoProfile -File "${SCRIPT_PATH}" -PlainTextBase64 "${b64PlainText}"`,
+      `powershell -NoProfile -File "${SCRIPT_PATH}" -CfHtmlBase64 "${cfHtmlB64}" -PlainTextBase64 "${plainTextB64}"`,
       {
-        input: safeHtml,
         encoding: 'utf-8',
         timeout: 10000,
         stdio: ['pipe', 'pipe', 'pipe'],
